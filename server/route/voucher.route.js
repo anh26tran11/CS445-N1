@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import auth from '../middleware/auth.js';
+import requireRole from '../middleware/roleAuth.js';
 import {
     addVoucerController, bulkDeleteVouchersController,
     bulkUpdateVouchersStatusController, deleteVoucherController,
@@ -14,12 +15,12 @@ import {
 
 const voucherRouter = Router()
 
-voucherRouter.post('/add-voucher', auth, addVoucerController)
+voucherRouter.post('/add-voucher', auth, requireRole('ADMIN', 'MANAGER'), addVoucerController)
 voucherRouter.get('/get-all-voucher', getAllVoucherController)
-voucherRouter.put('/update-voucher', auth, updateVoucherController)
-voucherRouter.delete('/delete-voucher', auth, deleteVoucherController)
-voucherRouter.delete('/bulk-delete-vouchers', auth, bulkDeleteVouchersController)
-voucherRouter.put('/bulk-update-vouchers-status', auth, bulkUpdateVouchersStatusController)
+voucherRouter.put('/update-voucher', auth, requireRole('ADMIN', 'MANAGER'), updateVoucherController)
+voucherRouter.delete('/delete-voucher', auth, requireRole('ADMIN', 'MANAGER'), deleteVoucherController)
+voucherRouter.delete('/bulk-delete-vouchers', auth, requireRole('ADMIN', 'MANAGER'), bulkDeleteVouchersController)
+voucherRouter.put('/bulk-update-vouchers-status', auth, requireRole('ADMIN', 'MANAGER'), bulkUpdateVouchersStatusController)
 
 // Get available vouchers for checkout
 voucherRouter.post('/available', getAvailableVouchersController)
@@ -31,8 +32,8 @@ voucherRouter.post('/apply', applyVoucherController)
 voucherRouter.post('/best', getBestVoucherController)
 
 // Analytics routes (admin only)
-voucherRouter.get('/analytics/overview', auth, getVoucherOverviewController)
-voucherRouter.get('/analytics/top-vouchers', auth, getTopVouchersController)
-voucherRouter.get('/analytics/usage-trend', auth, getUsageTrendController)
+voucherRouter.get('/analytics/overview', auth, requireRole('ADMIN', 'MANAGER'), getVoucherOverviewController)
+voucherRouter.get('/analytics/top-vouchers', auth, requireRole('ADMIN', 'MANAGER'), getTopVouchersController)
+voucherRouter.get('/analytics/usage-trend', auth, requireRole('ADMIN', 'MANAGER'), getUsageTrendController)
 
 export default voucherRouter
