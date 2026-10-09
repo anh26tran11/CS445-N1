@@ -6,6 +6,7 @@ import {
     verifyForgotPasswordOtp, verifyPassword, getCustomerAnalytics, googleLoginController
 } from '../controllers/user.controller.js'
 import auth from '../middleware/auth.js'
+import { admin } from '../middleware/Admin.js'
 import upload from './../middleware/multer.js';
 
 const userRouter = Router()
@@ -27,6 +28,6 @@ userRouter.get('/user-details', auth, userDetails)
 userRouter.get('/user-points', auth, userPoints)
 
 // Analytics route
-userRouter.get('/analytics', auth, getCustomerAnalytics)
+userRouter.get('/analytics', auth, admin, getCustomerAnalytics)
 
 export default userRouter
