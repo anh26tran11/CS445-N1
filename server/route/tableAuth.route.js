@@ -1,5 +1,6 @@
 import { Router } from "express";
 import auth from "../middleware/auth.js";
+import requireRole from "../middleware/roleAuth.js";
 import {
     createTableAccountController,
     loginViaQRController,
@@ -13,7 +14,7 @@ const tableAuthRouter = Router();
 tableAuthRouter.post('/login-qr', loginViaQRController);
 
 // Protected routes (require authentication)
-tableAuthRouter.post('/create-account', auth, createTableAccountController);
+tableAuthRouter.post('/create-account', auth, requireRole('ADMIN', 'MANAGER'), createTableAccountController);
 tableAuthRouter.get('/session', auth, getTableSessionController);
 tableAuthRouter.post('/logout', auth, logoutTableController);
 
