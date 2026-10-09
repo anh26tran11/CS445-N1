@@ -6,12 +6,13 @@ import {
     markAsRead,
 } from "../controllers/supportChat.controller.js";
 import auth from "../middleware/auth.js";
+import requireRole from "../middleware/roleAuth.js";
 
 const supportChatRouter = Router();
 
-supportChatRouter.get("/conversations", auth, getConversations);
-supportChatRouter.get("/conversations/:id", auth, getConversationById);
-supportChatRouter.patch("/conversations/:id/close", auth, closeConversation);
-supportChatRouter.patch("/conversations/:id/read", auth, markAsRead);
+supportChatRouter.get("/conversations", auth, requireRole('ADMIN', 'MANAGER'), getConversations);
+supportChatRouter.get("/conversations/:id", auth, requireRole('ADMIN', 'MANAGER'), getConversationById);
+supportChatRouter.patch("/conversations/:id/close", auth, requireRole('ADMIN', 'MANAGER'), closeConversation);
+supportChatRouter.patch("/conversations/:id/read", auth, requireRole('ADMIN', 'MANAGER'), markAsRead);
 
 export default supportChatRouter;
