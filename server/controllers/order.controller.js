@@ -804,7 +804,25 @@ export async function updateOrderStatusController(request, response) {
             });
         }
 
-        // Prepare update data
+        // Only the verified payment webhook can mark an online payment as paid.
+        // Manual payment confirmation is restricted to cash-on-delivery orders.
+        if (!['Đã thanh toán', 'Đã hủy'].includes(status)) {
+            return response.status(400).json({ success: false, message: 'Trạng thái không hợp lệ' });
+        }
+        const existingOrder = await OrderModel.findById(orderId).session(session);
+        if (!existingOrder) {
+            return response.status(404).json({ success: false, message: 'Không tìm thấy đơn hàng' });
+        }
+        if (status === 'Đã thanh toán' && existingOrder.paymentId) {
+            return response.status(403).json({ success: false, message: 'Thanh toán trực tuyến phải được xác nhận qua webhook' });
+        }
+        if (existingOrder.payment_status === 'Đã thanh toán' && status !== 'Đã thanh toán') {
+            return response.status(409).json({ success: false, message: 'Không thể thay đổi trạng thái thanh toán đã xác nhận' });
+        }
+        if (existingOrder.payment_status === status) {
+            return response.status(200).json({ success: true, message: 'Trạng thái không thay đổi', data: existingOrder });
+        }
+
         const updateData = {
             payment_status: status,
             status: status === 'Đã thanh toán' ? 'processing' : 'pending'
