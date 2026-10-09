@@ -5,6 +5,15 @@ import BookingModel from '../models/booking.model.js';
 export async function cleanupCancelledPayment(request, response) {
     try {
         const { sessionId } = request.body;
+        const userId = request.userId;
+
+        if (!userId) {
+            return response.status(401).json({
+                message: "Yêu cầu xác thực",
+                error: true,
+                success: false
+            });
+        }
 
         if (!sessionId) {
             return response.status(400).json({
@@ -20,14 +29,16 @@ export async function cleanupCancelledPayment(request, response) {
                 { invoice_receipt: sessionId },
                 { paymentId: sessionId }
             ],
-            payment_status: { $in: ['pending', 'Chờ thanh toán'] }
+            payment_status: { $in: ['pending', 'Chờ thanh toán'] },
+            userId
         });
 
         // Find bookings with this session ID that are still pending
         const pendingBookings = await BookingModel.find({
             paymentIntentId: sessionId,
             depositPaid: false,
-            status: 'pending'
+            status: 'pending',
+            userId
         });
 
         // Delete pending orders
