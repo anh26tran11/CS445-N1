@@ -1,8 +1,25 @@
+import jwt from "jsonwebtoken";
+import UserModel from "../models/user.model.js";
 import SupportChat from "../models/supportChat.model.js";
 import { v4 as uuidv4 } from "uuid";
 
 // admin socket id để broadcast notification
 const adminSockets = new Set();
+
+// Authenticate privileged socket actions from HTTP-only cookies or Socket.IO handshake auth.
+async function authorizeAdmin(socket) {
+    try {
+        const cookie = socket.handshake.headers.cookie || "";
+        const accessCookie = cookie.split(";").map(part => part.trim()).find(part => part.startsWith("accessToken="));
+        const token = socket.handshake.auth?.token || (accessCookie ? decodeURIComponent(accessCookie.slice("accessToken=".length)) : null);
+        if (!token || !process.env.SECRET_KEY_ACCESS_TOKEN) return false;
+        const decoded = jwt.verify(token, process.env.SECRET_KEY_ACCESS_TOKEN);
+        const user = await UserModel.findById(decoded.id || decoded._id).select("role");
+        return Boolean(user && ["ADMIN", "MANAGER"].includes(user.role));
+    } catch {
+        return false;
+    }
+}
 
 export function registerSupportChatSocket(io) {
     io.on("connection", (socket) => {
@@ -96,7 +113,8 @@ export function registerSupportChatSocket(io) {
 
         // ─── ADMIN ───────────────────────────────────────────────────────────
         // Admin join room quản lý
-        socket.on("admin:join", ({ adminName } = {}) => {
+        socket.on("admin:join", async ({ adminName } = {}) => {
+            if (!await authorizeAdmin(socket)) return socket.emit("error", { message: "Không có quyền quản trị" });
             socket.join("admin_room");
             adminSockets.add(socket.id);
             socket.isAdmin = true;
@@ -106,7 +124,9 @@ export function registerSupportChatSocket(io) {
         });
 
         // Admin join vào 1 conversation cụ thể để reply
-        socket.on("admin:joinConversation", ({ conversationId }) => {
+        socket.on("admin:joinConversation", async ({ conversationId }) => {
+            if (!await authorizeAdmin(socket)) return socket.emit("error", { message: "Không có quyền quản trị" });
+            if (!conversationId) return;
             socket.join(conversationId);
             socket.currentConversationId = conversationId;
         });
@@ -115,6 +135,7 @@ export function registerSupportChatSocket(io) {
         socket.on("admin:message", async ({ conversationId, text, adminName }) => {
             try {
                 if (!text?.trim() || !conversationId) return;
+                if (!await authorizeAdmin(socket)) return socket.emit("error", { message: "Không có quyền quản trị" });
 
                 const newMsg = {
                     sender: socket.id,
@@ -149,6 +170,7 @@ export function registerSupportChatSocket(io) {
         // Admin đóng ticket qua socket
         socket.on("admin:closeConversation", async ({ conversationId }) => {
             try {
+                if (!await authorizeAdmin(socket)) return socket.emit("error", { message: "Không có quyền quản trị" });
                 await SupportChat.findOneAndUpdate({ conversationId }, { status: "closed" });
                 io.to(conversationId).emit("conversation:closed");
                 console.log(`[Socket] Conversation closed: ${conversationId}`);
