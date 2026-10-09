@@ -1,5 +1,6 @@
 import { Router } from "express";
 import auth from "../middleware/auth.js";
+import requireRole from "../middleware/roleAuth.js";
 import {
     createTableController,
     getAllTablesController,
@@ -16,16 +17,16 @@ import {
 
 const tableRouter = Router();
 
-tableRouter.post('/create', auth, createTableController);
+tableRouter.post('/create', auth, requireRole('ADMIN', 'MANAGER'), createTableController);
 tableRouter.get('/get-all', getAllTablesController);
 tableRouter.get('/get/:id', getTableByIdController);
-tableRouter.put('/update', auth, updateTableController);
-tableRouter.delete('/delete', auth, deleteTableController);
-tableRouter.patch('/update-status', auth, updateTableStatusController);
+tableRouter.put('/update', auth, requireRole('ADMIN', 'MANAGER'), updateTableController);
+tableRouter.delete('/delete', auth, requireRole('ADMIN', 'MANAGER'), deleteTableController);
+tableRouter.patch('/update-status', auth, requireRole('ADMIN', 'MANAGER', 'WAITER'), updateTableStatusController);
 tableRouter.get('/available', getAvailableTablesController);
 
 // QR Code routes
-tableRouter.post('/generate-qr', auth, generateQRCodeController);
+tableRouter.post('/generate-qr', auth, requireRole('ADMIN', 'MANAGER'), generateQRCodeController);
 tableRouter.get('/qr/:id', getQRCodeController);
 
 export default tableRouter;
